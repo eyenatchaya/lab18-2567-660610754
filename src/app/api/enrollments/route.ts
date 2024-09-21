@@ -28,7 +28,7 @@ export const GET = async (request: NextRequest) => {
   try {
     const payload = jwt.verify(token, secret);
     studentId = (<Payload>payload).studentId;
-
+    role = (<Payload>payload).role;
     //read role information from "payload" here (just one line code!)
     //role = ...
   } catch {
@@ -42,6 +42,12 @@ export const GET = async (request: NextRequest) => {
   }
 
   //Check role here. If user is "ADMIN" show all of the enrollments instead
+  if (role === "ADMIN") {
+    return NextResponse.json({
+      ok: true,
+      enrollments: DB.enrollments,
+    });
+  }
   //   return NextResponse.json({
   //     ok: true,
   //     enrollments: null //replace null with enrollment data!
@@ -83,7 +89,7 @@ export const POST = async (request: NextRequest) => {
   try {
     const payload = jwt.verify(token, secret);
     studentId = (<Payload>payload).studentId;
-
+    role = (<Payload>payload).role;
     //read role information from "payload" here (just one line code!)
     //role = ...
   } catch {
@@ -97,14 +103,15 @@ export const POST = async (request: NextRequest) => {
   }
 
   //if role is "ADMIN", send the following response
-  // return NextResponse.json(
-  //   {
-  //     ok: true,
-  //     message: "Only Student can access this API route",
-  //   },
-  //   { status: 403 }
-  // );
-
+  if(role == "ADMIN"){
+    return NextResponse.json(
+     {
+       ok: true,
+       message: "Only Student can access this API route",
+     },
+     { status: 403 }
+   );
+  }
   //read body request
   const body = await request.json();
   const { courseNo } = body;
@@ -160,17 +167,49 @@ export const POST = async (request: NextRequest) => {
 export const DELETE = async (request: NextRequest) => {
   //check token
   //verify token and get "studentId" and "role" information here
+  const rawAuthHeader = headers().get("authorization");
+
+  if (!rawAuthHeader || !rawAuthHeader.startsWith("Bearer ")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Authorization header is required",
+      },
+      { status: 401 }
+    );
+  }
+
+  const token = rawAuthHeader.split(" ")[1];
+
+  const secret = process.env.JWT_SECRET || "This is my special secret";
   let studentId = null;
   let role = null;
+  try {
+    const payload = jwt.verify(token, secret);
+    studentId = (<Payload>payload).studentId;
+    role = (<Payload>payload).role;
+    //read role information from "payload" here (just one line code!)
+    //role = ...
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Invalid token",
+      },
+      { status: 401 }
+    );
+  }
 
   //if role is "ADMIN", send the following response
-  // return NextResponse.json(
-  //   {
-  //     ok: true,
-  //     message: "Only Student can access this API route",
-  //   },
-  //   { status: 403 }
-  // );
+  if(role == "ADMIN"){
+    return NextResponse.json(
+     {
+       ok: true,
+       message: "Only Student can access this API route",
+     },
+     { status: 403 }
+   );
+  }
 
   //get courseNo from body and validate it
   const body = await request.json();
